@@ -9,6 +9,8 @@ import GeneralCosts from './pages/GeneralCosts';
 import Orders from './pages/Orders';
 import Production from './pages/Production';
 import Recipes from './pages/Recipes';
+import RawMaterials from './pages/RawMaterials';
+import Variants from './pages/Variants';
 import Materials from './pages/Materials';
 import Profits from './pages/Profits';
 import Reports from './pages/Reports';
@@ -18,6 +20,7 @@ import UsersPage from './pages/Users';
 import MySales from './pages/MySales';
 import LinkPage from './pages/Link';
 import Profile from './pages/Profile';
+import SetupPassword from './pages/SetupPassword';
 
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { LogOut } from 'lucide-react';
@@ -80,6 +83,7 @@ const App: React.FC = () => {
       <HashRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/setup-password" element={<SetupPassword />} />
 
           <Route path="/" element={<ProtectedRoute><Patients /></ProtectedRoute>} />
           <Route path="/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
@@ -90,6 +94,8 @@ const App: React.FC = () => {
 
           <Route path="/products" element={<ProtectedRoute adminOnly><Products /></ProtectedRoute>} />
           <Route path="/recipes" element={<ProtectedRoute adminOnly><Recipes /></ProtectedRoute>} />
+          <Route path="/cambusa" element={<ProtectedRoute adminOnly><RawMaterials /></ProtectedRoute>} />
+          <Route path="/variants" element={<ProtectedRoute adminOnly><Variants /></ProtectedRoute>} />
           <Route path="/general-costs" element={<ProtectedRoute adminOnly><GeneralCosts /></ProtectedRoute>} />
           <Route path="/materials" element={<ProtectedRoute adminOnly><Materials /></ProtectedRoute>} />
           <Route path="/profits" element={<ProtectedRoute adminOnly><Profits /></ProtectedRoute>} />

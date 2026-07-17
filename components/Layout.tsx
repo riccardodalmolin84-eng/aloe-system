@@ -4,7 +4,8 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import {
   Users, Package, ShoppingBag, TrendingUp,
   Settings, ClipboardList, Database, Thermometer,
-  ChevronLeft, ChevronRight, FileText, UserPlus, LogOut, ShieldCheck, CloudLightning, Check, Share2, Receipt, User
+  ChevronLeft, ChevronRight, FileText, UserPlus, LogOut, ShieldCheck, CloudLightning, Check, Share2, Receipt, User,
+  Settings2, Tag
 } from 'lucide-react';
 import { useApp } from '../store';
 
@@ -28,8 +29,10 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   if (isAdmin) {
     navItems.push(
-      { to: '/products', icon: <Package size={20} />, label: 'Cambusa, Prodotti e Varianti' },
-      { to: '/recipes', icon: <Thermometer size={20} />, label: 'Ricette' },
+      { to: '/products', icon: <Tag size={20} />, label: 'Prodotti/Crea' },
+      { to: '/recipes', icon: <Thermometer size={20} />, label: 'Prodotti / ricette' },
+      { to: '/cambusa', icon: <Package size={20} />, label: 'Cambusa/Materie Prime' },
+      { to: '/variants', icon: <Settings2 size={20} />, label: 'Gestisci varianti' },
       { to: '/general-costs', icon: <Receipt size={20} />, label: 'Costi Generali' },
       { to: '/materials', icon: <Database size={20} />, label: 'Materiali' },
       { to: '/profits', icon: <TrendingUp size={20} />, label: 'Profitti' },

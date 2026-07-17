@@ -1,24 +1,17 @@
-
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../store';
-import { Recipe, IngredientRequirement, RawMaterial } from '../types';
-import { Plus, Beaker, Trash2, Droplets, Edit3, X, Settings2, Package, Coins, Info, AlertCircle } from 'lucide-react';
+import { Recipe, IngredientRequirement } from '../types';
+import { Plus, Beaker, Trash2, Droplets, Edit3, X, Coins, Info } from 'lucide-react';
 
 const Recipes: React.FC = () => {
   const {
     products, updateProduct, recipes, addRecipe, updateRecipe, deleteRecipe,
-    currentWorkspace, modifierGroups, rawMaterials, addRawMaterial, deleteRawMaterial
+    currentWorkspace, rawMaterials
   } = useApp();
 
   const [showModal, setShowModal] = useState(false);
-
-  const [recipeType, setRecipeType] = useState<'product' | 'modifier'>('product');
   const [selectedProductId, setSelectedProductId] = useState('');
-  const [selectedGroupId, setSelectedGroupId] = useState('');
-  const [selectedOption, setSelectedOption] = useState('');
-
   const [editingIngredients, setEditingIngredients] = useState<IngredientRequirement[]>([]);
-
   const [ingForm, setIngForm] = useState({ name: '', qty: 0, unit: 'gr', cost: 0, rawMaterialId: '' });
 
   const CONVERSIONS: Record<string, Record<string, number>> = {
@@ -37,12 +30,9 @@ const Recipes: React.FC = () => {
     const f = from.toLowerCase().trim();
     const t = to.toLowerCase().trim();
     if (f === t) return 1;
-    // Check direct match
     if (CONVERSIONS[f]?.[t]) return CONVERSIONS[f][t];
-    // Check aliases for 'kg'
     if ((f === 'kg' || f === 'kg.') && (t === 'gr' || t === 'g' || t === 'grammi')) return 1000;
     if ((t === 'kg' || t === 'kg.') && (f === 'gr' || f === 'g' || f === 'grammi')) return 0.001;
-    // Check aliases for 'lit'
     if ((f === 'lit' || f === 'l' || f === 'litro') && t === 'ml') return 1000;
     if ((t === 'lit' || t === 'l' || t === 'litro') && f === 'ml') return 0.001;
     return 1;
@@ -53,7 +43,6 @@ const Recipes: React.FC = () => {
       const rm = rawMaterials.find(r => r.id === ing.rawMaterialId);
       if (rm && rm.totalQuantity > 0) {
         const baseCostPerUnit = rm.totalPrice / rm.totalQuantity;
-        // Convert ingredient quantity unit to raw material unit
         const factor = getConversionFactor(ing.unit, rm.unit);
         return (ing.quantity * factor) * baseCostPerUnit;
       }
@@ -67,46 +56,27 @@ const Recipes: React.FC = () => {
 
   const resetState = () => {
     setSelectedProductId('');
-    setSelectedGroupId('');
-    setSelectedOption('');
     setEditingIngredients([]);
     setIngForm({ name: '', qty: 0, unit: 'gr', cost: 0, rawMaterialId: '' });
   };
 
   const openRecipeEditor = (productId: string) => {
     const existing = recipes.find(r => r.productId === productId);
-    setRecipeType('product');
     setSelectedProductId(productId);
     setEditingIngredients(existing ? [...existing.ingredients] : []);
     setShowModal(true);
   };
 
-  const openModifierRecipeEditor = (groupId: string, option: string) => {
-    const existing = recipes.find(r => r.modifierGroupId === groupId && r.modifierOption === option);
-    setRecipeType('modifier');
-    setSelectedGroupId(groupId);
-    setSelectedOption(option);
-    setEditingIngredients(existing ? [...existing.ingredients] : []);
-    setShowModal(true);
-  };
-
   const handleSaveRecipe = async () => {
-    if (!currentWorkspace) return;
+    if (!currentWorkspace || !selectedProductId) return;
 
-    let existing: Recipe | undefined;
-    if (recipeType === 'product') {
-      existing = recipes.find(r => r.productId === selectedProductId);
-    } else {
-      existing = recipes.find(r => r.modifierGroupId === selectedGroupId && r.modifierOption === selectedOption);
-    }
+    const existing = recipes.find(r => r.productId === selectedProductId);
 
     if (existing) {
       await updateRecipe({ ...existing, ingredients: editingIngredients });
     } else {
       await addRecipe({
-        productId: recipeType === 'product' ? selectedProductId : undefined,
-        modifierGroupId: recipeType === 'modifier' ? selectedGroupId : undefined,
-        modifierOption: recipeType === 'modifier' ? selectedOption : undefined,
+        productId: selectedProductId,
         ingredients: editingIngredients
       });
     }
@@ -137,23 +107,29 @@ const Recipes: React.FC = () => {
     }
   };
 
+  // Only show recipes that are linked to a product
+  const productRecipes = recipes.filter(r => r.productId);
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h2 className="text-3xl font-black tracking-tight text-slate-900 uppercase">Ricette e Formule</h2>
-          <p className="text-slate-500 font-medium">Gestisci la composizione dei prodotti e delle varianti.</p>
+          <h2 className="text-3xl font-black tracking-tight text-slate-900 uppercase">Prodotti / ricette</h2>
+          <p className="text-slate-500 font-medium">Gestisci la composizione e le formule dei prodotti base.</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <button onClick={() => { resetState(); setRecipeType('modifier'); setShowModal(true); }} className="bg-slate-500 text-white px-5 py-2.5 rounded-2xl flex items-center gap-2 hover:bg-slate-600 transition-all font-bold shadow-lg shadow-slate-100 uppercase text-[10px] tracking-widest"><Settings2 size={18} /> Nuova Variante Ricetta</button>
-          <button onClick={() => { resetState(); setRecipeType('product'); setShowModal(true); }} className="bg-green-600 text-white px-5 py-2.5 rounded-2xl flex items-center gap-2 hover:bg-green-700 transition-all font-bold shadow-lg shadow-green-100 uppercase text-[10px] tracking-widest"><Plus size={18} /> nuovo prodotto Ricetta</button>
+          <button
+            onClick={() => { resetState(); setShowModal(true); }}
+            className="bg-green-600 text-white px-5 py-2.5 rounded-2xl flex items-center gap-2 hover:bg-green-700 transition-all font-bold shadow-lg shadow-green-100 uppercase text-[10px] tracking-widest"
+          >
+            <Plus size={18} /> nuovo prodotto Ricetta
+          </button>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {recipes.map(recipe => {
+        {productRecipes.map(recipe => {
           const product = products.find(p => p.id === recipe.productId);
-          const group = modifierGroups.find(g => g.id === recipe.modifierGroupId);
           const totalCost = recipe.ingredients.reduce((sum, ing) => sum + getIngredientDynamicCostValue(ing), 0);
 
           return (
@@ -161,16 +137,16 @@ const Recipes: React.FC = () => {
               <div className="p-6">
                 <div className="flex justify-between items-start mb-4">
                   <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-2xl flex items-center justify-center border shadow-sm ${recipe.productId ? 'bg-green-50 text-green-600 border-green-100' : 'bg-slate-100 text-slate-600 border-slate-200'}`}>
-                      {recipe.productId ? <Droplets size={20} /> : <Settings2 size={20} />}
+                    <div className="w-10 h-10 rounded-2xl flex items-center justify-center border shadow-sm bg-green-50 text-green-600 border-green-100">
+                      <Droplets size={20} />
                     </div>
                     <div>
-                      <h3 className="text-lg font-black text-slate-800 leading-tight truncate max-w-[150px]">{recipe.productId ? product?.name : `${group?.name}: ${recipe.modifierOption}`}</h3>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{recipe.productId ? 'Ricetta Prodotto' : 'Ricetta Variante'}</p>
+                      <h3 className="text-lg font-black text-slate-800 leading-tight truncate max-w-[150px]">{product?.name || 'Prodotto'}</h3>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Ricetta Prodotto</p>
                     </div>
                   </div>
                   <div className="flex gap-1">
-                    <button onClick={() => recipe.productId ? openRecipeEditor(recipe.productId) : openModifierRecipeEditor(recipe.modifierGroupId!, recipe.modifierOption!)} className="p-2 text-slate-300 hover:text-blue-500 transition-colors"><Edit3 size={18} /></button>
+                    <button onClick={() => openRecipeEditor(recipe.productId!)} className="p-2 text-slate-300 hover:text-blue-500 transition-colors"><Edit3 size={18} /></button>
                     <button onClick={() => deleteRecipe(recipe.id)} className="p-2 text-slate-300 hover:text-red-500 transition-colors"><Trash2 size={18} /></button>
                   </div>
                 </div>
@@ -195,48 +171,53 @@ const Recipes: React.FC = () => {
             </div>
           );
         })}
+        {productRecipes.length === 0 && (
+          <div className="col-span-full py-16 text-center bg-slate-50/50 border border-dashed border-slate-200 rounded-[2.5rem] text-slate-400">
+            <Beaker className="mx-auto text-slate-200 mb-3 opacity-20" size={48} />
+            <p className="text-[10px] font-black text-slate-350 uppercase tracking-widest">Nessuna ricetta prodotto creata</p>
+          </div>
+        )}
       </div>
 
-      {/* MODAL RICETTA - INTEGRATO CON RAW MATERIALS */}
       {showModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col border border-white/20">
             <div className="p-8 border-b border-slate-100 flex justify-between items-center shrink-0 bg-slate-50/50">
               <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-xl ${recipeType === 'product' ? 'bg-green-100 text-green-600' : 'bg-slate-100 text-slate-600'}`}>
-                  {recipeType === 'product' ? <Droplets size={24} /> : <Settings2 size={24} />}
+                <div className="p-2 rounded-xl bg-green-100 text-green-600">
+                  <Droplets size={24} />
                 </div>
-                <h3 className="text-2xl font-black text-slate-800 uppercase tracking-tight leading-none">{recipeType === 'product' ? 'Formula Prodotto' : 'Formula Variante'}</h3>
+                <h3 className="text-2xl font-black text-slate-800 uppercase tracking-tight leading-none">Formula Prodotto</h3>
               </div>
               <button onClick={() => setShowModal(false)} className="p-3 hover:bg-white rounded-2xl text-slate-400 transition-all border border-slate-100"><X size={24} /></button>
             </div>
 
             <div className="flex-1 overflow-y-auto p-8 grid grid-cols-1 lg:grid-cols-2 gap-8 scroll-smooth hide-scrollbar">
               <div className="space-y-6">
-                {/* Selezione Prodotto/Variante */}
-                {recipeType === 'product' ? (
-                  <div className="space-y-2">
-                    <label className="text-10px] font-black text-slate-400 uppercase tracking-widest ml-1">Prodotto Associato</label>
-                    <select className="w-full p-4 border border-slate-200 rounded-2xl font-bold text-slate-700 outline-none bg-slate-50" value={selectedProductId} onChange={e => openRecipeEditor(e.target.value)}>
-                      <option value="">Scegli Prodotto...</option>
-                      {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                    </select>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Variante Associata</label>
-                      <select className="w-full p-4 border border-slate-200 rounded-2xl font-bold text-slate-700 outline-none bg-slate-50" value={selectedGroupId} onChange={e => setSelectedGroupId(e.target.value)}>
-                        <option value="">Scegli Gruppo...</option>
-                        {modifierGroups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
-                      </select>
-                    </div>
-                    {selectedGroupId && (
-                      <select className="w-full p-4 border border-slate-200 rounded-2xl font-bold text-slate-700 outline-none bg-slate-50" value={selectedOption} onChange={e => openModifierRecipeEditor(selectedGroupId, e.target.value)}>
-                        <option value="">Scegli Opzione...</option>
-                        {modifierGroups.find(g => g.id === selectedGroupId)?.options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                      </select>
-                    )}
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Prodotto Associato</label>
+                  <select
+                    className="w-full p-4 border border-slate-200 rounded-2xl font-bold text-slate-700 outline-none bg-slate-50"
+                    value={selectedProductId}
+                    onChange={e => openRecipeEditor(e.target.value)}
+                    disabled={!!selectedProductId}
+                  >
+                    <option value="">Scegli Prodotto...</option>
+                    {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                  </select>
+                </div>
+                {selectedProductId && (
+                  <div className="flex justify-between items-center text-xs font-black uppercase text-slate-500 bg-slate-100 p-4 rounded-2xl">
+                    <span>Bloccato su: {products.find(p => p.id === selectedProductId)?.name}</span>
+                    <button
+                      onClick={() => {
+                        setSelectedProductId('');
+                        setEditingIngredients([]);
+                      }}
+                      className="text-[10px] font-bold bg-white text-slate-600 px-3 py-1 rounded-xl shadow-sm border border-slate-200 hover:text-red-500 transition-all"
+                    >
+                      Sblocca
+                    </button>
                   </div>
                 )}
 
@@ -292,6 +273,7 @@ const Recipes: React.FC = () => {
                   </div>
 
                   <button
+                    type="button"
                     onClick={() => {
                       if (ingForm.name && ingForm.qty > 0) {
                         setEditingIngredients([...editingIngredients, {
@@ -312,7 +294,7 @@ const Recipes: React.FC = () => {
                   </button>
                 </div>
 
-                {recipeType === 'product' && selectedProductId && (
+                {selectedProductId && (
                   <div className="bg-green-50 p-6 rounded-[2.5rem] border border-green-100 flex flex-col gap-4 shadow-sm">
                     <div className="flex justify-between items-center">
                       <p className="text-[10px] font-black text-green-600 uppercase tracking-widest">Costo Calcolato Formula</p>
@@ -330,7 +312,7 @@ const Recipes: React.FC = () => {
                     const totalLineCost = getIngredientDynamicCostValue(ing);
 
                     return (
-                      <div key={idx} className="flex justify-between items-center p-4 bg-white rounded-2xl border border-slate-100 shadow-sm group hover:border-blue-100 transition-all">
+                      <div key={idx} className="flex justify-between items-center p-4 bg-white rounded-2xl border border-slate-100 shadow-sm hover:border-blue-100 transition-all">
                         <div className="flex items-center gap-3">
                           {ing.rawMaterialId ? (
                             <div className="p-2 bg-rose-50 text-rose-500 rounded-lg shadow-inner"><Coins size={14} /></div>
@@ -362,8 +344,8 @@ const Recipes: React.FC = () => {
                   <button onClick={() => setShowModal(false)} className="flex-1 py-5 font-black text-xs text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors">Annulla</button>
                   <button
                     onClick={handleSaveRecipe}
-                    disabled={editingIngredients.length === 0}
-                    className={`flex-[2] py-5 rounded-[1.8rem] font-black text-xs uppercase tracking-widest shadow-xl text-white transition-all active:scale-95 ${recipeType === 'product' ? 'bg-green-600 shadow-green-100 hover:bg-green-700' : 'bg-slate-700 shadow-slate-100 hover:bg-slate-800'} disabled:opacity-30 disabled:shadow-none`}
+                    disabled={!selectedProductId || editingIngredients.length === 0}
+                    className="flex-[2] py-5 rounded-[1.8rem] font-black text-xs uppercase tracking-widest shadow-xl text-white bg-green-600 shadow-green-100 hover:bg-green-700 transition-all disabled:opacity-30 disabled:shadow-none"
                   >
                     Salva Formula Completa
                   </button>
